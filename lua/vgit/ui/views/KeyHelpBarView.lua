@@ -5,6 +5,7 @@ local AppBarComponent = require('vgit.ui.components.AppBarComponent')
 local KeyHelpBarView = Object:extend()
 
 function KeyHelpBarView:constructor(scene, props, plot)
+  plot = plot or { row =  '100vh'}
   return {
     plot = plot,
     scene = scene,

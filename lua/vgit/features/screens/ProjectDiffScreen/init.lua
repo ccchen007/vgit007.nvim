@@ -110,29 +110,39 @@ end
 function ProjectDiffScreen:stage_hunk()
   local entry = self.model:get_entry()
   if not entry then
-    vim.notify("未获取到 entry", vim.log.levels.ERROR)
+    vim.schedule(function()
+      vim.notify("未获取到 entry", vim.log.levels.ERROR)
+    end)
     return
   end
   if entry.type ~= 'unstaged' then
-    vim.notify("当前不是未暂存文件", vim.log.levels.WARN)
+    vim.schedule(function()
+      vim.notify("当前不是未暂存文件", vim.log.levels.WARN)
+    end)
     return
   end
 
-  if not self.diff_view.hunks or #self.diff_view.hunks == 0 then
-    vim.notify("当前 diff 视图没有 hunk，请先选中文件并确保右侧有 diff", vim.log.levels.ERROR)
-    return
-  end
+  local diff = self.diff_view.props.diff()
+  local index = self.diff_view.current_hunk_index or 1
+  local hunk = diff and diff.hunks and diff.hunks[index] or nil
 
-  local hunk = self.diff_view:get_current_hunk()
-  if not hunk then
-    vim.notify("未获取到当前选中的 hunk", vim.log.levels.ERROR)
+  vim.schedule(function()
+    vim.notify(string.format("stage_hunk: index=%d, hunk=%s", index, vim.inspect(hunk)), vim.log.levels.INFO)
+  end)
+
+  if not diff or not diff.hunks or #diff.hunks == 0 or not hunk then
+    vim.schedule(function()
+      vim.notify("当前 diff 视图没有 hunk，请先选中文件并确保右侧有 diff", vim.log.levels.ERROR)
+    end)
     return
   end
 
   local filename = entry.status.filename
   local _, err = self.model:stage_hunk(filename, hunk)
   if err then
-    vim.notify("stage_hunk 失败: " .. vim.inspect(err), vim.log.levels.ERROR)
+    vim.schedule(function()
+      vim.notify("stage_hunk 失败: " .. vim.inspect(err), vim.log.levels.ERROR)
+    end)
     return
   end
 
@@ -142,29 +152,34 @@ end
 function ProjectDiffScreen:unstage_hunk()
   local entry = self.model:get_entry()
   if not entry then return end
-  if entry.type ~= 'staged' then return end
+  if entry.type ~= 'staged' then
+    vim.schedule(function()
+      vim.notify("当前不是已暂存文件，无法 unstage hunk", vim.log.levels.WARN)
+    end)
+    return
+  end
 
-  loop.free_textlock()
-  local hunk = self.diff_view:get_hunk_under_cursor()
-  if not hunk then return end
+  local diff = self.diff_view.props.diff()
+  local index = self.diff_view.current_hunk_index or 1
+  local hunk = diff and diff.hunks and diff.hunks[index] or nil
+
+  if not diff or not diff.hunks or #diff.hunks == 0 or not hunk then
+    vim.schedule(function()
+      vim.notify("当前 diff 视图没有 hunk，请先选中文件并确保右侧有 diff", vim.log.levels.ERROR)
+    end)
+    return
+  end
 
   local filename = entry.status.filename
   local _, err = self.model:unstage_hunk(filename, hunk)
   if err then
-    console.debug.error(err)
+    vim.schedule(function()
+      vim.notify("unstage_hunk 失败: " .. vim.inspect(err), vim.log.levels.ERROR)
+    end)
     return
   end
 
-  self:render(function()
-    local has_staged = false
-    self.status_list_view:each_status(function(status, entry_type)
-      if entry_type == 'staged' and status.filename == entry.status.filename then has_staged = true end
-    end)
-    self:move_to(function(status, entry_type)
-      if has_staged and entry_type == 'unstaged' then return false end
-      return status.filename == entry.status.filename
-    end)
-  end)
+  self:render()
 end
 
 function ProjectDiffScreen:stage_file()
@@ -436,6 +451,13 @@ function ProjectDiffScreen:setup_list_keymaps()
       mapping = keymaps.buffer_hunk_stage,
       handler = loop.coroutine(function()
         self:stage_hunk()
+      end),
+    },
+    {
+      mode = 'n',
+      mapping = keymaps.buffer_hunk_unstage,
+      handler = loop.coroutine(function()
+        self:unstage_hunk()
       end),
     },
   })

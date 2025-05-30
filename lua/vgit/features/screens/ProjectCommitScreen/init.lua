@@ -75,6 +75,7 @@ function ProjectCommitScreen:create()
         console.info('Successfully committed changes')
 
         self:destroy()
+        vim.cmd('VGit project_diff_preview')
       end),
     },
   })

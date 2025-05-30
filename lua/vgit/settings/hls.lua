@@ -27,7 +27,7 @@ return Config({
   end,
   GitAppBar = function()
     return {
-      bg = Color({ name = 'StatusLine', attribute = 'bg' }):darken(90):get(),
+      bg = Color({ name = 'StatusLine', attribute = 'bg' }):lighten(90):get(),
       fg = Color({ name = 'StatusLine', attribute = 'fg' }):get(),
       override = false,
     }

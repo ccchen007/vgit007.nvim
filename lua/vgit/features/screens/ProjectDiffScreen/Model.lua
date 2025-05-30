@@ -219,18 +219,18 @@ function Model:get_diff()
 end
 
 function Model:stage_hunk(filename, hunk)
-  local git_file = GitFile(filename)
+  local filepath = self:get_filepath()
+  local git_file = GitFile(filepath)
   if not git_file:is_tracked() then return git_file:stage() end
-
   local file, err = git_file:status()
   if err then return nil, err end
-
   if file:has('D ') or file:has(' D') then return git_file:stage() end
   return git_file:stage_hunk(hunk)
 end
 
 function Model:unstage_hunk(filename, hunk)
-  local git_file = GitFile(filename)
+  local filepath = self:get_filepath()
+  local git_file = GitFile(filepath)
   if not git_file:is_tracked() then return git_file:unstage() end
 
   local file, err = git_file:status()

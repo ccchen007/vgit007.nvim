@@ -91,7 +91,7 @@ function ComponentPlot:configure_row()
 
   -- Row
   if has_header then
-    self.header_win_plot.row = win_plot.row + header_element_height
+    self.header_win_plot.row = win_plot.row --+ header_element_height
     win_plot.row = win_plot.row + header_element_height
   end
 
