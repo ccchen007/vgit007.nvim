@@ -609,7 +609,7 @@ function DiffView:get_relative_mark_index(lnum)
 end
 
 function DiffView:move_to_hunk(mark_index, pos)
-  if not pos then pos = 'top' end
+  if not pos then pos = 'center' end
 
   if not mark_index then mark_index = 1 end
 
