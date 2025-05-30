@@ -81,10 +81,26 @@ end
 
 function ProjectDiffScreen:hunk_up()
   self.diff_view:prev()
+  local diff = self.diff_view.props.diff()
+  local index = self.diff_view.current_hunk_index or 1
+  local hunk = diff and diff.hunks and diff.hunks[index] or nil
+  if hunk then
+    vim.schedule(function()
+      vim.notify(string.format("hunk_up: 当前hunk范围 [%d, %d] (index=%d)", hunk.top or -1, hunk.bot or -1, index), vim.log.levels.INFO)
+    end)
+  end
 end
 
 function ProjectDiffScreen:hunk_down()
   self.diff_view:next()
+  local diff = self.diff_view.props.diff()
+  local index = self.diff_view.current_hunk_index or 1
+  local hunk = diff and diff.hunks and diff.hunks[index] or nil
+  if hunk then
+    vim.schedule(function()
+      vim.notify(string.format("hunk_down: 当前hunk范围 [%d, %d] (index=%d)", hunk.top or -1, hunk.bot or -1, index), vim.log.levels.INFO)
+    end)
+  end
 end
 
 function ProjectDiffScreen:move_to(query_fn)
@@ -93,30 +109,34 @@ end
 
 function ProjectDiffScreen:stage_hunk()
   local entry = self.model:get_entry()
-  if not entry then return end
-  if entry.type ~= 'unstaged' then return end
+  if not entry then
+    vim.notify("未获取到 entry", vim.log.levels.ERROR)
+    return
+  end
+  if entry.type ~= 'unstaged' then
+    vim.notify("当前不是未暂存文件", vim.log.levels.WARN)
+    return
+  end
 
-  loop.free_textlock()
-  local hunk = self.diff_view:get_hunk_under_cursor()
-  if not hunk then return end
+  if not self.diff_view.hunks or #self.diff_view.hunks == 0 then
+    vim.notify("当前 diff 视图没有 hunk，请先选中文件并确保右侧有 diff", vim.log.levels.ERROR)
+    return
+  end
+
+  local hunk = self.diff_view:get_current_hunk()
+  if not hunk then
+    vim.notify("未获取到当前选中的 hunk", vim.log.levels.ERROR)
+    return
+  end
 
   local filename = entry.status.filename
   local _, err = self.model:stage_hunk(filename, hunk)
   if err then
-    console.debug.error(err)
+    vim.notify("stage_hunk 失败: " .. vim.inspect(err), vim.log.levels.ERROR)
     return
   end
 
-  self:render(function()
-    local has_unstaged = false
-    self.status_list_view:each_status(function(status, entry_type)
-      if entry_type == 'unstaged' and status.filename == entry.status.filename then has_unstaged = true end
-    end)
-    self:move_to(function(status, entry_type)
-      if has_unstaged and entry_type == 'staged' then return false end
-      return status.filename == entry.status.filename
-    end)
-  end)
+  self:render()
 end
 
 function ProjectDiffScreen:unstage_hunk()
@@ -331,7 +351,7 @@ function ProjectDiffScreen:render(on_status_list_render)
 end
 
 function ProjectDiffScreen:handle_list_move()
-  local list_item = self.status_list_view:move()
+  local list_item = self.status_list_view:get_current_list_item()
   if not list_item then return end
 
   self.model:set_entry_id(list_item.id)
@@ -409,6 +429,13 @@ function ProjectDiffScreen:setup_list_keymaps()
       mapping = keymaps.reset_all,
       handler = loop.coroutine(function()
         self:reset_all()
+      end),
+    },
+    {
+      mode = 'n',
+      mapping = keymaps.buffer_hunk_stage,
+      handler = loop.coroutine(function()
+        self:stage_hunk()
       end),
     },
   })

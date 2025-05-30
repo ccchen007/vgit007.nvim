@@ -172,28 +172,47 @@ function DiffScreen:enter_view()
 end
 
 function DiffScreen:stage_hunk(buffer)
-  if self.model:is_hunk() then return end
-  if self.model:is_staged() then return end
+  if self.model:is_hunk() then
+    vim.notify("当前为 hunk 视图，无法 stage hunk", vim.log.levels.WARN)
+    return
+  end
+  if self.model:is_staged() then
+    vim.notify("当前为已暂存状态，无法 stage hunk", vim.log.levels.WARN)
+    return
+  end
 
   loop.free_textlock()
   local filename = self.model:get_filename()
-  if not filename then return end
+  if not filename then
+    vim.notify("未获取到文件名", vim.log.levels.ERROR)
+    return
+  end
 
   loop.free_textlock()
   local hunk, index = self.diff_view:get_hunk_under_cursor()
-  if not hunk then return end
+  if not hunk then
+    vim.notify("未获取到 hunk", vim.log.levels.ERROR)
+    return
+  end
 
-  self.model:stage_hunk(filename, hunk)
+  vim.notify("正在 stage hunk: " .. vim.inspect(hunk), vim.log.levels.INFO)
+
+  local _, err = self.model:stage_hunk(filename, hunk)
+  if err then
+    vim.notify("stage_hunk 失败: " .. vim.inspect(err), vim.log.levels.ERROR)
+    return
+  end
 
   loop.free_textlock()
   local _, refetch_err = self.model:fetch(buffer:get_name())
   loop.free_textlock()
 
   if refetch_err then
-    console.debug.error(refetch_err).error(refetch_err)
+    vim.notify("刷新 diff 失败: " .. vim.inspect(refetch_err), vim.log.levels.ERROR)
     return
   end
 
+  vim.notify("stage hunk 成功", vim.log.levels.INFO)
   self.diff_view:render()
   self.diff_view:move_to_hunk(index, 'center')
 end

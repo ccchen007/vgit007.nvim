@@ -618,7 +618,6 @@ end
 
 function DiffView:move_to_hunk(mark_index, pos)
   if not pos then pos = 'center' end
-
   if not mark_index then mark_index = 1 end
 
   local diff = self.props.diff()
@@ -632,6 +631,8 @@ function DiffView:move_to_hunk(mark_index, pos)
   elseif mark_index > #marks then
     mark_index = 1
   end
+
+  self.current_hunk_index = mark_index  -- <== 关键：记录当前hunk索引
 
   self:move_to_mark(marks, mark_index, pos)
 
@@ -672,6 +673,12 @@ function DiffView:render()
   end)
 
   if not ok then console.debug.error(msg) end
+end
+
+function DiffView:get_current_hunk()
+  local diff = self.props.diff()
+  if not diff or not diff.hunks then return nil end
+  return diff.hunks[self.current_hunk_index]
 end
 
 return DiffView
