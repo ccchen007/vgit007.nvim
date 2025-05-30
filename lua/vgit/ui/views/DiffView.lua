@@ -539,6 +539,14 @@ function DiffView:move_to_mark(marks, mark_index, position)
 
   self:set_lnum(lnum, position)
 
+  local component = self.scene:get('current')
+  -- component.buffer:clear_extmark_lnums()
+  self:render_line_numbers()
+  component:place_extmark_lnum({
+    row = lnum - 1,
+    text = ">",
+  })
+  
   return mark
 end
 
