@@ -38,5 +38,9 @@ return Config({
       key = 'R',
       desc = 'Reset all'
     },
+    untrack = {
+      key = 'D',
+      desc = 'Untrack file'
+    },
   },
 })

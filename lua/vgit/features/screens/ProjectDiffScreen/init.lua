@@ -37,6 +37,7 @@ function ProjectDiffScreen:constructor(opts)
           { 'Unstage all',  keymaps['unstage_all'] },
           { 'Reset all',    keymaps['reset_all'] },
           { 'Commit',       keymaps['commit'] },
+          { 'Untracked',     keymaps['untrack'] },
         }
       end,
     }),
@@ -460,6 +461,13 @@ function ProjectDiffScreen:setup_list_keymaps()
         self:unstage_hunk()
       end),
     },
+    {
+      mode = 'n',
+      mapping = keymaps.untrack,
+      handler = loop.coroutine(function()
+        self:untrack_file()
+      end),
+    },
   })
 end
 
@@ -597,6 +605,52 @@ end
 
 function ProjectDiffScreen:destroy()
   self.scene:destroy()
+end
+
+function ProjectDiffScreen:untrack_file()
+  local entry = self.model:get_entry()
+  if not entry then return end
+
+  loop.free_textlock()
+  local filename = entry.status.filename
+  local decision = console.input(string.format('确定要取消追踪文件 %s 吗？(y/N) ', filename)):lower()
+
+  if decision ~= 'yes' and decision ~= 'y' then return end
+
+  local _, err = self.model:untrack_file(filename)
+  if err then
+    console.debug.error(err)
+    return
+  end
+
+  -- 重新获取文件状态并更新视图
+  local entries = self.model:fetch()
+  if utils.object.is_empty(entries) then
+    self:destroy()
+    return
+  end
+
+  -- 只更新文件列表视图
+  self.status_list_view:render()
+  
+  -- 清空当前的 diff 视图
+  self.diff_view:clear_extmarks()
+  self.diff_view:clear_title()
+  self.diff_view:clear_lines()
+  self.diff_view:clear_notification()
+  self.diff_view:reset_cursor()
+  
+  -- 选择下一个可用的文件
+  local list_item = self.status_list_view:get_current_list_item()
+  if list_item then
+    self.model:set_entry_id(list_item.id)
+    -- 确保新文件有 diff 数据后再渲染
+    local diff = self.model:get_diff()
+    if diff then
+      self.diff_view:render()
+      self.diff_view:move_to_hunk()
+    end
+  end
 end
 
 return ProjectDiffScreen

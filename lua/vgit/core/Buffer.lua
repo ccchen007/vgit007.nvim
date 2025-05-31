@@ -162,23 +162,30 @@ function Buffer:get_lines(top, bot)
 end
 
 function Buffer:get_option(key)
-  return vim.api.nvim_buf_get_option(self.bufnr, key)
+  local result
+  vim.schedule(function()
+    result = vim.api.nvim_buf_get_option(self.bufnr, key)
+  end)
+  return result
 end
 
 function Buffer:set_lines(lines, top, bot)
   top = top or 0
   bot = bot or -1
   local bufnr = self.bufnr
-  local modifiable = vim.api.nvim_buf_get_option(bufnr, 'modifiable')
 
-  if modifiable then
+  vim.schedule(function()
+    local modifiable = vim.api.nvim_buf_get_option(bufnr, 'modifiable')
+
+    if modifiable then
+      pcall(vim.api.nvim_buf_set_lines, bufnr, top, bot, false, lines)
+      return
+    end
+
+    vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
     pcall(vim.api.nvim_buf_set_lines, bufnr, top, bot, false, lines)
-    return self
-  end
-
-  vim.api.nvim_buf_set_option(bufnr, 'modifiable', true)
-  pcall(vim.api.nvim_buf_set_lines, bufnr, top, bot, false, lines)
-  vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
+    vim.api.nvim_buf_set_option(bufnr, 'modifiable', false)
+  end)
 
   return self
 end
@@ -203,7 +210,11 @@ function Buffer:get_line_count()
 end
 
 function Buffer:editing()
-  return self:get_option('modified')
+  local result
+  vim.schedule(function()
+    result = vim.api.nvim_buf_get_option(self.bufnr, 'modified')
+  end)
+  return result
 end
 
 function Buffer:filetype()

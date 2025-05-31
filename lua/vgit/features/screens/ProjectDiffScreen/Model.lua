@@ -275,4 +275,9 @@ function Model:reset_all()
   return git_repo.clean(reponame)
 end
 
+function Model:untrack_file(filename)
+  local reponame = git_repo.discover()
+  return git_repo.untrack(reponame, filename)
+end
+
 return Model

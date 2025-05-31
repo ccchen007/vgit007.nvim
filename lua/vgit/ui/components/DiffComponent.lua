@@ -6,22 +6,103 @@ local HeaderTitle = require('vgit.ui.decorations.HeaderTitle')
 local HeaderElement = require('vgit.ui.elements.HeaderElement')
 local FooterElement = require('vgit.ui.elements.FooterElement')
 local Notification = require('vgit.ui.decorations.Notification')
+local dimensions = require('vgit.ui.dimensions')
 
 local DiffComponent = Component:extend()
 
 function DiffComponent:constructor(props)
-  props = utils.object.assign({
-    config = {
-      elements = {
-        header = true,
-        footer = true,
+  props = props or {}
+  local config = props.config or {}
+
+  return {
+    mounted = false,
+    props = props,
+    config = config,
+    elements = config.elements or {},
+    header_title = HeaderTitle(),
+    notification = Notification(),
+  }
+end
+
+function DiffComponent:define()
+  local config = self.config
+  local elements = config.elements or {}
+  local win_plot = config.win_plot or {}
+
+  if elements.header then
+    local header_height = 1
+    win_plot.row = (win_plot.row or 0) + header_height
+    if win_plot.height then
+      win_plot.height = win_plot.height - header_height
+    end
+    
+    self.elements.header = Component({
+      win_plot = dimensions.relative_win_plot(win_plot, {
+        height = header_height,
+        row = win_plot.row - header_height,
+      }),
+      win_options = {
+        number = false,
+        relativenumber = false,
+        wrap = false,
+        spell = false,
+        foldenable = false,
+        signcolumn = 'no',
+        colorcolumn = '',
+        cursorline = false,
+        cursorcolumn = false,
+        scrolloff = 0,
+        sidescrolloff = 0,
       },
-      win_plot = {
-        zindex = 3,
+      buf_options = {
+        swapfile = false,
+        buftype = 'nofile',
+        modifiable = true,
+        modified = false,
+        readonly = false,
       },
-    },
-  }, props)
-  return Component.constructor(self, props)
+    })
+  end
+
+  if elements.footer then
+    local footer_height = 1
+    if win_plot.height then
+      win_plot.height = win_plot.height - footer_height
+    end
+    
+    self.elements.footer = Component({
+      win_plot = dimensions.relative_win_plot(win_plot, {
+        height = footer_height,
+        row = win_plot.height,
+      }),
+      win_options = {
+        number = false,
+        relativenumber = false,
+        wrap = false,
+        spell = false,
+        foldenable = false,
+        signcolumn = 'no',
+        colorcolumn = '',
+        cursorline = false,
+        cursorcolumn = false,
+        scrolloff = 0,
+        sidescrolloff = 0,
+      },
+      buf_options = {
+        swapfile = false,
+        buftype = 'nofile',
+        modifiable = true,
+        modified = false,
+        readonly = false,
+      },
+    })
+  end
+
+  Component.define(self, {
+    win_plot = win_plot,
+    win_options = config.win_options,
+    buf_options = config.buf_options,
+  })
 end
 
 function DiffComponent:set_cursor(cursor)

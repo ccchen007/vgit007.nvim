@@ -113,4 +113,19 @@ function git_repo.clean(reponame, filename)
   })
 end
 
+function git_repo.untrack(reponame, filename)
+  if not reponame then return nil, { 'reponame is required' } end
+  if not filename then return nil, { 'filename is required' } end
+  
+  return gitcli.run({
+    '-C',
+    reponame,
+    '--no-pager',
+    'rm',
+    '--cached',
+    '--',
+    filename,
+  })
+end
+
 return git_repo
