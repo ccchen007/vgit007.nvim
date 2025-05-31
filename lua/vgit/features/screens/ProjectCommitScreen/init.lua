@@ -43,6 +43,91 @@ function ProjectCommitScreen:constructor(opts)
   }
 end
 
+function ProjectCommitScreen:set_cursor(cursor)
+  self.window:set_cursor(cursor)
+  return self
+end
+
+function ProjectCommitScreen:set_lnum(lnum)
+  self.window:set_lnum(lnum)
+  return self
+end
+
+function ProjectCommitScreen:call(callback)
+  self.window:call(callback)
+  return self
+end
+
+function ProjectCommitScreen:reset_cursor()
+  Component.reset_cursor(self)
+  return self
+end
+
+function ProjectCommitScreen:clear_lines()
+  Component.clear_lines(self)
+  return self
+end
+
+function ProjectCommitScreen:position_cursor(placement)
+  Component.position_cursor(self, placement)
+  return self
+end
+
+function ProjectCommitScreen:mount(opts)
+  opts = opts or {}
+
+  if self.mounted then return self end
+
+  local config = self.config
+
+  self.notification = Notification()
+  self.header_title = HeaderTitle()
+  self.buffer = Buffer():create():assign_options(config.buf_options)
+
+  local plot = self.plot
+  local buffer = self.buffer
+
+  if config.elements.header then self.elements.header = HeaderElement():mount(plot.header_win_plot) end
+  if config.elements.footer then self.elements.footer = FooterElement():mount(plot.footer_win_plot) end
+
+  self.window = Window:open(buffer, plot.win_plot):assign_options(config.win_options)
+
+  self.mounted = true
+
+  return self
+end
+
+function ProjectCommitScreen:unmount()
+  if not self.mounted then return self end
+
+  local header = self.elements.header
+  local footer = self.elements.footer
+
+  self.window:close()
+  if header then header:unmount() end
+  if footer then footer:unmount() end
+
+  return self
+end
+
+function ProjectCommitScreen:set_title(title, opts)
+  local header = self.elements.header
+  if not header then return self end
+
+  self.header_title:set(header, title, opts)
+
+  return self
+end
+
+function ProjectCommitScreen:clear_title()
+  local header = self.elements.header
+  if not header then return self end
+
+  self.header_title:clear(header)
+
+  return self
+end
+
 function ProjectCommitScreen:create()
   loop.free_textlock()
   local _, err = self.model:fetch()
@@ -72,10 +157,13 @@ function ProjectCommitScreen:create()
 
         if commit_err then return console.debug.error(commit_err).error(commit_err) end
 
-        console.info('Successfully committed changes')
-
-        self:destroy()
-        vim.cmd('VGit project_diff_preview')
+        console.info('成功提交更改')
+        
+        -- 先打开新界面,再销毁当前界面
+        vim.schedule(function()
+          vim.cmd('VGit project_diff_preview')
+          self:destroy()
+        end)
       end),
     },
   })

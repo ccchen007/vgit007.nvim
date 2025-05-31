@@ -162,9 +162,16 @@ function Buffer:get_lines(top, bot)
 end
 
 function Buffer:get_option(key)
+  if not self:is_valid() then
+    return nil
+  end
+  
   local result
   vim.schedule(function()
-    result = vim.api.nvim_buf_get_option(self.bufnr, key)
+    local ok, value = pcall(vim.api.nvim_buf_get_option, self.bufnr, key)
+    if ok then
+      result = value
+    end
   end)
   return result
 end

@@ -272,8 +272,10 @@ function ProjectDiffScreen:unstage_all()
 end
 
 function ProjectDiffScreen:commit()
-  self:destroy()
-  vim.cmd('VGit project_commit_preview')
+  vim.schedule(function()
+    vim.cmd('VGit project_commit_preview')
+    self:destroy()
+  end)
 end
 
 function ProjectDiffScreen:reset_file()
