@@ -544,7 +544,7 @@ function DiffView:move_to_mark(marks, mark_index, position)
   self:render_line_numbers()
   component:place_extmark_lnum({
     row = lnum - 1,
-    text = ">",
+    text = ">>",
   })
   
   return mark
